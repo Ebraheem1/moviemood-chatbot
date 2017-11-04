@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	cors "github.com/heppu/simple-cors"
 )
 
 //JSON OBJECT type
@@ -557,6 +558,6 @@ func main() {
 		port = "8080"
 	}
 	fmt.Println("Server is up and running.")
-	http.ListenAndServe(":"+port, router)
+	http.ListenAndServe(":"+port, cors.CORS(router))
 
 }
