@@ -116,24 +116,26 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		response := make(map[string]interface{})
 		response["message"] = result["message"]
 
-		if error == nil && serverError == nil {
+		if (error == nil) && (serverError == nil) {
 			writeJSON(w, response)
 		} else {
 			if error != nil {
 				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintln(w, result["error"].(string))
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintln(w, result["server-error"].(string))
 			}
-			writeJSON(w, response)
+			//writeJSON(w, response)
 		}
 
 	} else {
 		//We need to handle this by error handling
 		w.WriteHeader(http.StatusUnauthorized)
-		invalidMessage := make(map[string]interface{})
-		invalidMessage["message"] = "Invalid Authorization Header! Navigate to the /welcome route to get authorized."
-		writeJSON(w, invalidMessage)
-		//fmt.Fprintln(w, "Invalid Authorization Header! Navigate to the /welcome route to get authorized.")
+		// invalidMessage := make(map[string]interface{})
+		// invalidMessage["message"] = "Invalid Authorization Header! Navigate to the /welcome route to get authorized."
+		// writeJSON(w, invalidMessage)
+		fmt.Fprintln(w, "Invalid Authorization Header! Navigate to the /welcome route to get authorized.")
 	}
 }
 
