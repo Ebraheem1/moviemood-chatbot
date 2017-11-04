@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -18,8 +19,7 @@ type JSON map[string]interface{}
 
 // User Structure
 type User struct {
-	UUID            string
-	Recommendations [2]string
+	UUID string
 }
 
 // Movie Structure
@@ -114,24 +114,24 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 		response := make(map[string]interface{})
 		response["message"] = result["message"]
 
-		if (error == nil && serverError == nil){
+		if error == nil && serverError == nil {
 			writeJSON(w, response)
 		} else {
-			if(error != nil){
+			if error != nil {
 				w.WriteHeader(http.StatusBadRequest)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 			writeJSON(w, response)
 		}
-		
+
 	} else {
 		//We need to handle this by error handling
 		w.WriteHeader(http.StatusUnauthorized)
-		// invalidMessage := make(map[string]interface{})
-		// invalidMessage["message"] = "Invalid Authorization Header! Navigate to the /welcome route to get authorized."
-		// writeJSON(w, invalidMessage)
-		fmt.Fprintln(w, "Invalid Authorization Header! Navigate to the /welcome route to get authorized.")
+		invalidMessage := make(map[string]interface{})
+		invalidMessage["message"] = "Invalid Authorization Header! Navigate to the /welcome route to get authorized."
+		writeJSON(w, invalidMessage)
+		//fmt.Fprintln(w, "Invalid Authorization Header! Navigate to the /welcome route to get authorized.")
 	}
 }
 
@@ -140,7 +140,7 @@ func stringMatching(message string) JSON {
 	command := words[0]
 	name := strings.TrimPrefix(message, command+" ")
 
-	if len(words) >= 2 && (name=="" || words[1]==""){
+	if len(words) >= 2 && (name == "" || words[1] == "") {
 		invalidMessage := make(map[string]interface{})
 		invalidMessage["error"] = "Invalid Command! Please use the following commands: {Movie [MOVIE_NAME], Actor/Actress [ACTOR_NAME/ACTRESS_NAME], Suggest}"
 		invalidMessage["message"] = "Invalid Command! Please use the following commands: {Movie [MOVIE_NAME], Actor/Actress [ACTOR_NAME/ACTRESS_NAME], Suggest}"
@@ -148,7 +148,7 @@ func stringMatching(message string) JSON {
 	}
 
 	if strings.ToLower(command) == "movie" {
-		if len(words)<2 {
+		if len(words) < 2 {
 			invalidMessage := make(map[string]interface{})
 			invalidMessage["error"] = "The movie name should consist of at least one word!"
 			invalidMessage["message"] = "The movie name should consist of at least one word!"
@@ -204,7 +204,7 @@ func stringMatching(message string) JSON {
 	}
 
 	if strings.ToLower(command) == "favourite" {
-		if len(words)<2 {
+		if len(words) < 2 {
 			invalidMessage := make(map[string]interface{})
 			invalidMessage["error"] = "The movie name should consist of at least one word!"
 			invalidMessage["message"] = "The movie name should consist of at least one word!"
@@ -278,7 +278,7 @@ func getMovie(movie string) ([]Movie, JSON) {
 		return moviesSearched, nil
 	}
 }
-func getPersonalInfo(actor *Actor) JSON{
+func getPersonalInfo(actor *Actor) JSON {
 	response, err := http.Get("https://api.themoviedb.org/3/person/" + strconv.Itoa(int((*actor).ID)) + "?api_key=185a996898bc5f90934413d4f55ae50c&language=en-US")
 	if err != nil {
 		invalidMessage := make(map[string]interface{})
@@ -296,30 +296,30 @@ func getPersonalInfo(actor *Actor) JSON{
 			invalidMessage["message"] = invalidMessage["server-error"]
 			return invalidMessage
 		}
-		if(responseData["birthday"] != nil){
+		if responseData["birthday"] != nil {
 			(*actor).Birthday = responseData["birthday"].(string)
 		}
 		if responseData["deathday"] != nil {
 			(*actor).Deathday = responseData["deathday"].(string)
 		}
-		if(responseData["place_of_birth"] != nil){
-			(*actor).PlaceOfBirth = responseData["place_of_birth"].(string)		
+		if responseData["place_of_birth"] != nil {
+			(*actor).PlaceOfBirth = responseData["place_of_birth"].(string)
 		}
-		if(responseData["biography"] != nil){
-			(*actor).Biography = responseData["biography"].(string)	
+		if responseData["biography"] != nil {
+			(*actor).Biography = responseData["biography"].(string)
 		}
-		if(responseData["gender"] != nil){
+		if responseData["gender"] != nil {
 			if responseData["gender"].(float64) == 1 {
 				(*actor).Gender = "Female"
 			} else {
 				(*actor).Gender = "Male"
 			}
 		}
-		return nil	
+		return nil
 	}
 }
 
-func getActor(actorName string, actorFullName string) ([]Actor, JSON){
+func getActor(actorName string, actorFullName string) ([]Actor, JSON) {
 
 	response, err := http.Get("https://api.themoviedb.org/3/search/person?api_key=185a996898bc5f90934413d4f55ae50c&language=en-US&query=" + actorName)
 
@@ -351,7 +351,7 @@ func getActor(actorName string, actorFullName string) ([]Actor, JSON){
 		i := 0
 		for results > 0 {
 			actor := actorsData[i].(map[string]interface{})
-			if(strings.ToLower(actorFullName) == strings.ToLower(actor["name"].(string))){
+			if strings.ToLower(actorFullName) == strings.ToLower(actor["name"].(string)) {
 				actorInstance.ID = actor["id"].(float64)
 				actorInstance.Name = actor["name"].(string)
 				movies := actor["known_for"].([]interface{})
@@ -427,9 +427,9 @@ func getRecommendationHelper(id float64, movies *[]Movie) JSON {
 			}
 			if movie["vote_average"] != nil {
 				//Here we type float as the id is stored in the api as float64
-				movieInstance.VoteAverage = movie["vote_average"].(float64)	
+				movieInstance.VoteAverage = movie["vote_average"].(float64)
 			}
-			
+
 			*movies = append((*movies), movieInstance)
 			i = i + 1
 			results = results - 1
@@ -477,7 +477,7 @@ func getRecommendation(movie string) ([]Movie, JSON) {
 		}
 	}
 
-	return nil,nil
+	return nil, nil
 }
 
 func handleSpaces(s string) string {
@@ -495,17 +495,17 @@ func handleSpaces(s string) string {
 func parseMovies(movies []Movie, suggest bool) string {
 	var moviesString string
 
-	if(suggest){
-		moviesString = "Found "+ strconv.Itoa(len(movies)) +" matching suggestions.\n"
-	}else{
-		moviesString = "Found "+ strconv.Itoa(len(movies)) +" matching results.\n"
+	if suggest {
+		moviesString = "Found " + strconv.Itoa(len(movies)) + " matching suggestions.\n"
+	} else {
+		moviesString = "Found " + strconv.Itoa(len(movies)) + " matching results.\n"
 	}
 
 	for index, movie := range movies {
 		if index == len(movies)-1 {
-			moviesString+="Movie #" + strconv.Itoa(index+1) + ": {Title: " + movie.Title + ", Overview: " + movie.Overview + ", Rating: " + strconv.FormatFloat(movie.VoteAverage, 'f', -1, 64) + ", Release Date: " + movie.ReleaseDate + "}"
+			moviesString += "Movie #" + strconv.Itoa(index+1) + ": {Title: " + movie.Title + ", Overview: " + movie.Overview + ", Rating: " + strconv.FormatFloat(movie.VoteAverage, 'f', -1, 64) + ", Release Date: " + movie.ReleaseDate + "}"
 		} else {
-			moviesString+="Movie #" + strconv.Itoa(index+1) + ": {Title: " + movie.Title + ", Overview: " + movie.Overview + ", Rating: " + strconv.FormatFloat(movie.VoteAverage, 'f', -1, 64) + ", Release Date: " + movie.ReleaseDate + "}\n"
+			moviesString += "Movie #" + strconv.Itoa(index+1) + ": {Title: " + movie.Title + ", Overview: " + movie.Overview + ", Rating: " + strconv.FormatFloat(movie.VoteAverage, 'f', -1, 64) + ", Release Date: " + movie.ReleaseDate + "}\n"
 		}
 	}
 	return moviesString
@@ -518,13 +518,13 @@ func parseMoviesTitles(movies []Movie) string {
 			moviesString += movie.Title + "}"
 		} else {
 			moviesString += movie.Title + ", "
-		}	
+		}
 	}
 	return moviesString
 }
 
 func parseActors(actors []Actor) string {
-	actorsString := "Found "+ strconv.Itoa(len(actors)) +" matching results.\n"
+	actorsString := "Found " + strconv.Itoa(len(actors)) + " matching results.\n"
 	deathday := ""
 	biography := ""
 	for index, actor := range actors {
@@ -535,9 +535,9 @@ func parseActors(actors []Actor) string {
 			biography = ", Biography: " + actor.Biography
 		}
 		if index == len(actors)-1 {
-			actorsString+="Actor #" + strconv.Itoa(index+1) + ": {Name: " + actor.Name + ", Birthday: " + actor.Birthday + deathday + biography + ", Gender: " + actor.Gender + ", Place of Birth: "+actor.PlaceOfBirth + ", Known For: " + parseMoviesTitles(actor.Movies) + "}"
+			actorsString += "Actor #" + strconv.Itoa(index+1) + ": {Name: " + actor.Name + ", Birthday: " + actor.Birthday + deathday + biography + ", Gender: " + actor.Gender + ", Place of Birth: " + actor.PlaceOfBirth + ", Known For: " + parseMoviesTitles(actor.Movies) + "}"
 		} else {
-			actorsString+="Actor #" + strconv.Itoa(index+1) + ": {Name: " + actor.Name + ", Birthday: " + actor.Birthday + deathday + biography + ", Gender: " + actor.Gender + ", Place of Birth: "+actor.PlaceOfBirth + ", Known For: " + parseMoviesTitles(actor.Movies) + "}\n"
+			actorsString += "Actor #" + strconv.Itoa(index+1) + ": {Name: " + actor.Name + ", Birthday: " + actor.Birthday + deathday + biography + ", Gender: " + actor.Gender + ", Place of Birth: " + actor.PlaceOfBirth + ", Known For: " + parseMoviesTitles(actor.Movies) + "}\n"
 		}
 	}
 	return actorsString
@@ -550,8 +550,13 @@ func main() {
 	router.HandleFunc("/", handle).Methods("GET")
 	router.HandleFunc("/welcome", handleWelcome).Methods("GET")
 	router.HandleFunc("/chat", handleChat).Methods("POST")
-
+	// Use the PORT environment variable
+	port := os.Getenv("PORT")
+	// Default to 8080 if no PORT environment variable was defined
+	if port == "" {
+		port = "8080"
+	}
 	fmt.Println("Server is up and running.")
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":"+port, router)
 
 }
